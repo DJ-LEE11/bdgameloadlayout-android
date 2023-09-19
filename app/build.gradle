@@ -44,6 +44,12 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
+    sourceSets {
+        main {
+            assets.srcDirs += ['src/main/assets']
+            java.srcDirs += ['src/main/generated']
+        }
+    }
 }
 
 dependencies {
@@ -69,4 +75,35 @@ dependencies {
     androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
     debugImplementation 'androidx.compose.ui:ui-tooling'
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
+}
+
+afterEvaluate {
+    preBuild.dependsOn generateDynamicLayout
+}
+
+task generateDynamicLayout(type: GenerateDynamicLayoutTask) {
+    group = 'Custom Tasks'
+    inputFilePath = file('src/main/assets/layout.txt')
+    outputDirectory = file('src/main/java/com/bdgame/loadlayout/layout')
+}
+
+class GenerateDynamicLayoutTask extends DefaultTask {
+    @InputFile
+    File inputFilePath
+    @OutputDirectory
+    File outputDirectory
+
+    @TaskAction
+    void generateKotlinFile() {
+        String inputFileContent = inputFilePath.text
+        String packageName = "com.bdgame.loadlayout.layout"
+        def kotlinCode =
+                """package $packageName
+
+$inputFileContent
+"""
+        File outputFile = new File(outputDirectory, "DynamicLayout.kt")
+        outputFile.text = kotlinCode
+        outputFile.createNewFile()
+    }
 }

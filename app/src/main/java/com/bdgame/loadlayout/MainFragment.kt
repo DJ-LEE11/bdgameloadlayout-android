@@ -1,12 +1,12 @@
 package com.bdgame.loadlayout
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
-import com.bdgame.loadlayout.ui.CommonTitle
+import com.bdgame.loadlayout.ui.LoadDynamicLayoutFail
 
 /**
  * Author: lidongjie01
@@ -17,10 +17,19 @@ import com.bdgame.loadlayout.ui.CommonTitle
 class MainFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return ConstraintLayout(inflater.context).apply {
-            fitsSystemWindows = true
-            setBackgroundColor(0xFFFFFFFF.toInt())
-            val titleView = CommonTitle("load view")
-        }
+        return getRootView(inflater.context) ?: inflater.context.LoadDynamicLayoutFail()
     }
+}
+
+private fun getRootView(context: Context): View? {
+    try {
+        val loadLayoutClass = Class.forName("com.bdgame.loadlayout.layout.DynamicLayout")
+        val loadLayoutInstance = loadLayoutClass.newInstance()
+        val rootViewMethod = loadLayoutClass.getDeclaredMethod("rootView", Context::class.java)
+        val view = rootViewMethod.invoke(loadLayoutInstance, context) as View
+        return view
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+    return null
 }
