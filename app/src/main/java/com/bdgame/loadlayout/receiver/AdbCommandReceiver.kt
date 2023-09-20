@@ -3,6 +3,7 @@ package com.bdgame.loadlayout.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.bdgame.loadlayout.layout.LayoutManager.updateLayout
 import com.bdgame.loadlayout.utils.KLog
 
 /**
@@ -21,6 +22,7 @@ class AdbCommandReceiver : BroadcastReceiver() {
         intent?.action?.apply {
             if (this == "com.bdgame.loadlayout.UPATE_LAYOUT") {
                 KLog.i(TAG, "receive adb intent:$intent")
+                updateLayout()
             }
         }
     }

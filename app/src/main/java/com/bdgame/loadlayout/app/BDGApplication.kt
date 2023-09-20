@@ -1,6 +1,7 @@
 package com.bdgame.loadlayout.app
 
 import androidx.multidex.MultiDexApplication
+import com.bdgame.loadlayout.layout.LayoutManager
 
 /**
  * Author: lidongjie01
@@ -13,5 +14,6 @@ class BDGApplication : MultiDexApplication() {
     override fun onCreate() {
         super.onCreate()
         AppRuntime.application = this
+        LayoutManager
     }
 }
