@@ -107,3 +107,39 @@ $inputFileContent
         outputFile.createNewFile()
     }
 }
+
+apply from: "../pushFile.gradle"
+task updateLayout {
+    group = 'Custom Tasks'
+    doLast {
+        println "start UpdateLayout"
+        def adb = getAdb()
+        if (null == adb) {
+            println("UpdateLayout plugin so not found adb")
+            return
+        }
+        println "adb $adb"
+        def devices = getAdbDevices(adb)
+        if (null == devices) {
+            println("UpdateLayout plugin so not found devices")
+            return
+        }
+        println "devices $devices"
+        def rootDir = project.rootDir
+        println "rootDir $rootDir"
+        def layoutFile = new File(rootDir, "layout.txt")
+        if (!layoutFile.exists()){
+            println("UpdateLayout plugin not found layoutFile")
+            return
+        }
+        devices.each { device ->
+            def internalLayoutPath = "files/layout"
+            pushFileToDeviceData(adb, device, "com.bdgame.loadlayout",layoutFile.absolutePath, internalLayoutPath, layoutFile.name)
+            exec {
+                commandLine "$adb", "-s", "$device", "shell", "am", "broadcast","-a","com.bdgame.loadlayout.UPATE_LAYOUT",
+                        "com.bdgame.loadlayout"
+                ignoreExitValue true
+            }
+        }
+    }
+}

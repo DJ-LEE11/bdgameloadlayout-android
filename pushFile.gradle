@@ -1,0 +1,148 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
+ext {
+
+    //push文件到sd卡
+    pushFileToSdcard = { sourceFile, destFile ->
+        def adb = getAdb()
+        if (null == adb) {
+            println("pushFileToSdcard not found adb")
+            return
+        }
+        def devices = getAdbDevices(adb)
+        if (null == devices) {
+            println("pushFileToSdcard not found devices")
+            return
+        }
+        devices.each { device ->
+            pushFileToDeviceSdcard(adb, device, sourceFile, destFile)
+        }
+    }
+
+    //push文件到sd卡
+    pushFileToDeviceSdcard = { adb, device, sourceFile, destFile ->
+        if (null == adb) {
+            adb = getAdb()
+        }
+        if (null == adb) {
+            println("pushFileToDeviceSdcard not found adb")
+            return
+        }
+        def result = exec {
+            commandLine "$adb", "-s", "$device", "push", sourceFile, destFile
+            ignoreExitValue true
+        }
+
+        def isSuccess = result.exitValue == 0
+        println "pushFileToDeviceSdcard result:$isSuccess path:$destFile"
+    }
+
+    /**
+     * push文件到应用私有目录（/data/data/pkg）
+     * @param pkgName 应用包名
+     * @param sourceFile 源文件
+     * @param destFile 指定目录
+     * @param fileName 指定文件名
+     */
+    pushFileToData = { pkgName, sourceFile, destDir, fileName ->
+        def adb = getAdb()
+        if (null == adb) {
+            println("pushFileToData not found adb")
+            return
+        }
+        def devices = getAdbDevices(adb)
+        if (null == devices) {
+            println("pushFileToData not found devices")
+            return
+        }
+        devices.each { device ->
+            pushFileToDeviceData(adb, device, pkgName, sourceFile, destDir, fileName)
+        }
+    }
+
+    /**
+     * push文件到应用私有目录（/data/data/pkg）
+     * @param adb adb目录
+     * @param device 指定adb设备
+     * @param pkgName 应用包名
+     * @param sourceFile 源文件
+     * @param destFile 指定目录
+     * @param fileName 指定文件名
+     */
+    pushFileToDeviceData = { adb, device, pkgName, sourceFile, destDir, fileName ->
+        if (null == adb) {
+            adb = getAdb()
+        }
+        if (null == adb) {
+            println("pushFileToDeviceData not found adb")
+            return
+        }
+        def destPath = "$destDir/$fileName"
+        def temFile = "/data/local/tmp/$fileName"
+        exec {
+            commandLine "$adb", "-s", "$device", "push", sourceFile, temFile
+            ignoreExitValue true
+        }
+        exec {
+            commandLine "$adb", "-s", "$device", "shell", "run-as", pkgName, "mkdir", "-p", destDir
+            ignoreExitValue true
+        }
+        def result = exec {
+            commandLine "$adb", "-s", "$device", "shell", "run-as", pkgName, "cp", temFile, destPath
+            ignoreExitValue true
+        }
+        exec {
+            commandLine "$adb", "-s", "$device", "shell", "rm", temFile
+            ignoreExitValue true
+        }
+        def isSuccess = result.exitValue == 0
+        println "pushFileToDeviceData result:$isSuccess path:data/data/$pkgName/$destPath"
+    }
+
+    //获取adb连接的所有设备
+    getAdbDevices = { adb ->
+        if (null == adb) {
+            adb = getAdb()
+        }
+        if (null == adb) {
+            println("getAdbDevices not found adb")
+            return
+        }
+        def devicesOutPut = new ByteArrayOutputStream()
+        exec {
+            commandLine "$adb", "devices"
+            ignoreExitValue true
+            standardOutput = devicesOutPut
+        }
+        def devices = []
+        devicesOutPut.toString().trim().split("\n").eachWithIndex { String deviceInfoString, int index ->
+            if (index == 0) {
+                return
+            }
+            def deviceInfo = deviceInfoString.split("\t")
+            if (deviceInfo.length < 2 || deviceInfo[1] != "device") {
+                return
+            }
+            devices.add(deviceInfo[0])
+        }
+        return devices
+    }
+
+    getAdb = {
+        def rootDir = project.rootDir
+        def localProperties = new File(rootDir, "local.properties")
+        if (localProperties.exists()) {
+            Properties properties = new Properties()
+            localProperties.withInputStream {
+                instr -> properties.load(instr)
+            }
+            def sdkDir = properties.getProperty('sdk.dir')
+            return "$sdkDir/platform-tools/adb"
+        } else if(project.plugins.hasPlugin("android")) {
+            def adbExecutable = project.plugins.getPlugin("android").extension.adbExecutable
+            return adbExecutable
+        } else {
+            throw Execption("未找到adb环境")
+        }
+    }
+}
