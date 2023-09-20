@@ -5,6 +5,8 @@ import com.bdgame.loadlayout.utils.KLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.File
@@ -23,6 +25,10 @@ object LayoutManager {
 
     private val mScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
+    private val mLayoutContent = MutableStateFlow<String?>(null)
+
+    val layoutContent: StateFlow<String?> = mLayoutContent
+
     init {
         updateLayout()
     }
@@ -34,7 +40,8 @@ object LayoutManager {
             if (layoutFile.exists()) {
                 KLog.i(TAG, "updateLayout layoutFile exists")
                 convertTextFileToString(layoutFile).apply {
-                    KLog.i(TAG, "updateLayout json content:$this")
+                    KLog.i(TAG, "updateLayout content:$this")
+                    mLayoutContent.tryEmit(this)
                 }
             }
         }
